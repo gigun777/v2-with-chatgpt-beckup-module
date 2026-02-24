@@ -1495,11 +1495,39 @@ async function openTemplatesManager() {
       return;
     }
 
-    const schemaResolver = async (schemaId) => {
-      const def = sdoInst.schemas?.get?.(schemaId) || null;
-      if (!def) return { title: schemaId, columns: [], sheetSettings: {} };
+    const schemaResolver = async (schemaId, journalId = null) => {
+      let def = (schemaId ? sdoInst.schemas?.get?.(schemaId) : null) || null;
+
+      // Fallback: table datasets may not persist schemaId; resolve by journal template.
+      if (!def && journalId) {
+        const st = sdoInst.api?.getState?.() || sdoInst.getState?.() || {};
+        const journal = (st.journals || []).find((j) => j?.id === journalId) || null;
+        const tplId = journal?.templateId;
+        if (tplId) {
+          try {
+            const tpl = await sdoInst.journalTemplates?.getTemplate?.(tplId);
+            if (tpl) {
+              const fields = Array.isArray(tpl.fields) ? tpl.fields : [];
+              def = {
+                title: tpl.title || journal?.title || journalId,
+                columns: fields.map((f) => ({
+                  id: f.key,
+                  name: f.label || f.key,
+                  type: f.type,
+                  settings: f.settings
+                })),
+                sheetSettings: tpl.sheetSettings || {}
+              };
+            }
+          } catch (_) {
+            // no-op: keep empty fallback below
+          }
+        }
+      }
+
+      if (!def) return { title: schemaId || journalId || 'journal', columns: [], sheetSettings: {} };
       return {
-        title: def.title || def.name || schemaId,
+        title: def.title || def.name || schemaId || journalId,
         columns: (def.columns || []).map((c) => ({
           id: c.id ?? c.colId,
           name: c.name,

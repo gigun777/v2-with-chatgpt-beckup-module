@@ -68,12 +68,13 @@ export function createAdapterFromV2TableStore({ tableStore, storage, schemaResol
     async getSheetSchema(journalId) {
       const dataset = await (tableStore.getDataset.length >= 2 ? tableStore.getDataset(storage, journalId) : tableStore.getDataset(journalId));
       const schemaId = dataset.schemaId;
-      const schema = await schemaResolver(schemaId);
+      const schema = await schemaResolver(schemaId, journalId);
+      const columns = Array.isArray(schema?.columns) ? schema.columns : [];
       return {
         journalId,
-        title: schema.title ?? journalId,
+        title: schema?.title ?? journalId,
         schemaId,
-        columns: (schema.columns || []).map(c => ({
+        columns: columns.map(c => ({
           colId: c.id ?? c.colId,
           name: c.name,
           type: c.type,

@@ -777,8 +777,9 @@ const loc = normalizeLocation({ spaces: state.spaces, journals: state.journals, 
 
     // Export datasets to an XLSX workbook. Accepts optional journalIds array and filename. If journalIds is omitted, all journals will be exported.
     async exportXlsx({ journalIds, filename } = {}) {
-      const tableStore = createTableStoreModule();
-      const bundle = await tableStore.exportTableData(storage, { journalIds, includeFormatting: false });
+      const store = api.tableStore;
+      if (!store?.exportTableData) throw new Error('exportXlsx: tableStore API is unavailable');
+      const bundle = await store.exportTableData({ journalIds, includeFormatting: false });
       const sheets = [];
       const journalNameById = {};
       for (const j of state.journals) {
@@ -835,7 +836,8 @@ const loc = normalizeLocation({ spaces: state.spaces, journals: state.journals, 
       const ab = await (file.arrayBuffer ? file.arrayBuffer() : new Response(file).arrayBuffer());
       const entries = await excelUnzipEntries(ab);
       const sheets = await excelParseWorkbook(entries);
-      const tableStore = createTableStoreModule();
+      const store = api.tableStore;
+      if (!store?.upsertRecords) throw new Error('importXlsx: tableStore API is unavailable');
       const journalIdByName = {};
       for (const j of state.journals) {
         const nameKey = (j.name || j.title || '').trim();
@@ -861,7 +863,11 @@ const loc = normalizeLocation({ spaces: state.spaces, journals: state.journals, 
             updatedAt: new Date().toISOString()
           };
         });
-        await tableStore.upsertRecords(storage, jId, records, mode);
+        if (!state.journals.some((j) => j?.id === jId)) {
+          results.push({ journalId: jId, imported: 0, warning: 'journal not found' });
+          continue;
+        }
+        await store.upsertRecords(jId, records, mode);
         results.push({ journalId: jId, imported: records.length });
       }
       return { imported: true, sheets: results };
