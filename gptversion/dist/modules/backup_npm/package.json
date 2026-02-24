@@ -1,0 +1,24 @@
+{
+  "name": "@dilovodstvo/backup",
+  "version": "0.2.0",
+  "type": "module",
+  "description": "Dilovodstvo Backup module (ZIP/JSON/XLSX/DOCX) with TableAdapter for v2 table engine.",
+  "exports": {
+    ".": "./src/index.js",
+    "./core/*": "./src/core/*.js",
+    "./adapters/*": "./src/adapters/*.js"
+  },
+  "sideEffects": false,
+  "scripts": {
+    "selfcheck": "node ./scripts/selfcheck.js"
+  },
+  "keywords": [
+    "dilovodstvo",
+    "backup",
+    "xlsx",
+    "docx",
+    "zip",
+    "esm"
+  ],
+  "license": "MIT"
+}
